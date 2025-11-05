@@ -4,6 +4,7 @@ import App from './App.jsx'
 // We're assuming you have an index.css, if not, you can remove this line
 import './index.css' 
 
+
 // 1. Import our new AuthProvider
 import { AuthProvider } from './context/AuthContext.jsx'
 

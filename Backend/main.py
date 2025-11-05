@@ -159,4 +159,19 @@ async def read_user_resumes(
     """
     return crud.get_resumes_by_owner(db=db, user_id=current_user.id)
 
-    
+
+@app.get("/resume/{resume_id}", response_model=schemas.Resume)
+async def read_resume(
+    resume_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Protected endpoint to get a single resume by its ID.
+    """
+    db_resume = crud.get_resume(db=db, resume_id=resume_id, user_id=current_user.id)
+    if db_resume is None:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    return db_resume
+
+   

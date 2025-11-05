@@ -78,3 +78,13 @@ def get_resumes_by_owner(db: Session, user_id: int):
     Gets all resumes owned by a specific user.
     """
     return db.query(models.Resume).filter(models.Resume.owner_id == user_id).all()
+
+def get_resume(db: Session, resume_id: int, user_id: int):
+    """
+    Gets a single resume by its ID,
+    ensuring it belongs to the correct user.
+    """
+    return db.query(models.Resume).filter(
+        models.Resume.id == resume_id,
+        models.Resume.owner_id == user_id
+    ).first()

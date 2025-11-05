@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react'; // 1. Import useState and useEffect
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom';
-import axios from 'axios'; // 2. Import axios
+import axios from 'axios';
 
 // Page Imports
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import CreateResumePage from './pages/CreateResumePage';
+import PrintResumePage from './pages/PrintResumePage';
 
 // Component Imports
 import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// --- Navigation Component (No Changes) ---
+// --- Navigation Component ---
 function Navigation() {
   const auth = useAuth();
   const navigate = useNavigate();
@@ -36,38 +37,52 @@ function Navigation() {
   );
 }
 
-// --- HomePage Component (This is your Dashboard - UPDATED) ---
+// --- HomePage Component ---
 function HomePage() {
-  // 3. State to hold the list of resumes
   const [resumes, setResumes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const auth = useAuth();
 
-  // 4. useEffect to fetch resumes when the page loads
   useEffect(() => {
     const fetchResumes = async () => {
+      const token = localStorage.getItem('grobs-ai-token');
+      if (!token) {
+        console.error('No token found');
+        auth.logout();
+        navigate('/login');
+        return;
+      }
+
       try {
-        // Call our new backend endpoint
-        const response = await axios.get('http://127.0.0.1:8000/resumes/');
-        setResumes(response.data); // Store the list in state
-        setLoading(false);
+        const response = await axios.get('http://127.0.0.1:8000/resumes/', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setResumes(response.data);
       } catch (error) {
         console.error('Error fetching resumes:', error);
+        if (error.response?.status === 401) {
+          alert("Session expired. Please log in again.");
+          auth.logout();
+          navigate('/login');
+        }
+      } finally {
         setLoading(false);
       }
     };
 
     fetchResumes();
-  }, []); // The empty array [] means this runs once when the component mounts
+  }, [auth, navigate]);
 
   return (
     <div>
       <h1>Welcome to Your Dashboard</h1>
-      <p>This is where your saved resumes and other tools will appear.</p>
-      
       <Link to="/create-resume" style={{ textDecoration: 'none' }}>
-        <button style={{ 
-          padding: '0.75rem 1.5rem', 
-          fontSize: '1rem', 
+        <button style={{
+          padding: '0.75rem 1.5rem',
+          fontSize: '1rem',
           cursor: 'pointer',
           backgroundColor: '#007bff',
           color: 'white',
@@ -79,7 +94,6 @@ function HomePage() {
         </button>
       </Link>
 
-      {/* 5. Display the list of resumes */}
       <div style={{ marginTop: '2rem' }}>
         <h2>Your Saved Resumes</h2>
         {loading ? (
@@ -89,14 +103,24 @@ function HomePage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {resumes.map((resume) => (
-              <div key={resume.id} style={{ 
-                padding: '1rem', 
-                border: '1px solid #ccc', 
-                borderRadius: '8px' 
+              <div key={resume.id} style={{
+                padding: '1rem',
+                border: '1px solid #ccc',
+                borderRadius: '8px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
               }}>
-                <h3>{resume.full_name}</h3>
-                <p>{resume.email}</p>
-                {/* We'll add a "View" button here later */}
+                <div>
+                  <h3>{resume.full_name}</h3>
+                  <p>{resume.email}</p>
+                </div>
+                {/* 2. NEW "VIEW/PRINT" BUTTON */}
+                <Link to="/print-preview" state={{ resume: resume }}>
+                  <button style={{ padding: '0.5rem 1rem' }}>
+                    View & Print
+                  </button>
+                </Link>
               </div>
             ))}
           </div>
@@ -106,8 +130,7 @@ function HomePage() {
   );
 }
 
-
-// --- App Component (Main Router - No Changes) ---
+// --- App Component ---
 function App() {
   return (
     <BrowserRouter>
@@ -122,6 +145,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/create-resume" element={<CreateResumePage />} />
+              <Route path="/print-preview" element={<PrintResumePage />} />
             </Route>
           </Routes>
         </div>
