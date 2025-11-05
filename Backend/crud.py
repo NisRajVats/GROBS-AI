@@ -66,6 +66,13 @@ def create_resume(db: Session, resume_data: schemas.ResumeCreate, user_id: int):
             resume_id=db_resume.id # Link it to the new resume
         )
         db.add(db_proj)
+
+    for skill_data in resume_data.skills:
+        db_skill = models.Skill(
+            **skill_data.dict(),
+            resume_id=db_resume.id
+        )
+        db.add(db_skill)
         
     # 6. Commit all the new entries (education, exp, projects)
     db.commit()

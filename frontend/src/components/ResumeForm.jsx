@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
+// --- Step 1, 2, 3 (Personal, Edu, Exp) are unchanged ---
+// (Code for PersonalInfoStep, EducationStep, ExperienceStep is here, but redacted for brevity)
 // --- Step 1: Personal Info (No Changes) ---
 function PersonalInfoStep({ formData, setFormData, nextStep }) {
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -120,22 +122,13 @@ function ExperienceStep({ formData, setFormData, nextStep, prevStep }) {
   );
 }
 
-// --- Step 4 Component (Projects) ---
+// --- Step 4: Projects (No Changes) ---
 function ProjectsStep({ formData, setFormData, nextStep, prevStep }) {
-  const [currentEntry, setCurrentEntry] = useState({
-    project_name: '',
-    description: '',
-    project_url: ''
-  });
-  const handleChange = (e) => {
-    setCurrentEntry({ ...currentEntry, [e.target.name]: e.target.value });
-  };
+  const [currentEntry, setCurrentEntry] = useState({ project_name: '', description: '', project_url: '' });
+  const handleChange = (e) => setCurrentEntry({ ...currentEntry, [e.target.name]: e.target.value });
   const handleAddProject = (e) => {
     e.preventDefault();
-    setFormData({
-      ...formData,
-      projects: [...formData.projects, currentEntry]
-    });
+    setFormData({ ...formData, projects: [...formData.projects, currentEntry] });
     setCurrentEntry({ project_name: '', description: '', project_url: '' });
   };
 
@@ -144,9 +137,7 @@ function ProjectsStep({ formData, setFormData, nextStep, prevStep }) {
       <h3>Step 4: Projects</h3>
       <div style={{ marginBottom: '1.5rem' }}>
         <h4>Your Project Entries:</h4>
-        {formData.projects.length === 0 ? (
-          <p>No entries added yet.</p>
-        ) : (
+        {formData.projects.length === 0 ? <p>No entries added yet.</p> : (
           <ul style={{ paddingLeft: '20px' }}>
             {formData.projects.map((proj, index) => (
               <li key={index}>
@@ -164,22 +155,84 @@ function ProjectsStep({ formData, setFormData, nextStep, prevStep }) {
         <label htmlFor="project_url" style={{ marginTop: '1rem' }}>Project URL (GitHub, etc.):</label>
         <input type="url" name="project_url" id="project_url" value={currentEntry.project_url} onChange={handleChange} style={{ padding: '0.5rem' }} />
         <label htmlFor="description" style={{ marginTop: '1rem' }}>Description:</label>
-        <textarea
-          name="description"
-          id="description"
-          value={currentEntry.description}
-          onChange={handleChange}
-          rows="3"
-          placeholder="A brief description of your project..."
-          style={{ padding: '0.5rem' }}
-        />
+        <textarea name="description" id="description" value={currentEntry.description} onChange={handleChange} rows="3" placeholder="A brief description of your project..." style={{ padding: '0.5rem' }} />
         <button type="submit" style={{ marginTop: '1.5rem', padding: '0.75rem', cursor: 'pointer', backgroundColor: '#28a745', color: 'white' }}>
           + Add This Entry
         </button>
       </form>
       <div style={{ marginTop: '2rem' }}>
+        <button onClick={prevStep} style={{ marginRight: '1rem', padding: '0.75rem' }}>Back: Experience</button>
+        <button onClick={nextStep} style={{ padding: '0.75rem' }}>Next: Skills</button>
+      </div>
+    </div>
+  );
+}
+
+// --- NEW: Step 5 Component (Skills) ---
+function SkillsStep({ formData, setFormData, nextStep, prevStep }) {
+  // Local state for the *current* skill being added
+  const [currentSkill, setCurrentSkill] = useState('');
+
+  const handleChange = (e) => {
+    setCurrentSkill(e.target.value);
+  };
+
+  const handleAddSkill = (e) => {
+    e.preventDefault();
+    if (currentSkill.trim() === '') return; // Don't add empty skills
+    
+    // Add the skill as an object to match our schema
+    setFormData({
+      ...formData,
+      skills: [...formData.skills, { name: currentSkill }]
+    });
+    // Clear the input
+    setCurrentSkill('');
+  };
+
+  return (
+    <div>
+      <h3>Step 5: Skills</h3>
+      
+      {/* Display skills already added */}
+      <div style={{ marginBottom: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+        {formData.skills.length === 0 ? (
+          <p>No skills added yet.</p>
+        ) : (
+          formData.skills.map((skill, index) => (
+            <span key={index} style={{ padding: '0.5rem 1rem', backgroundColor: '#007bff', color: 'white', borderRadius: '20px' }}>
+              {skill.name}
+            </span>
+          ))
+        )}
+      </div>
+
+      {/* Form for adding a new skill */}
+      <form onSubmit={handleAddSkill} style={{ display: 'flex', alignItems: 'flex-end', width: '400px', borderTop: '1px solid #eee', paddingTop: '1rem' }}>
+        <div style={{ flexGrow: 1, marginRight: '1rem' }}>
+          <label htmlFor="skill_name">Add Skill:</label>
+          <input 
+            type="text" 
+            name="skill_name" 
+            id="skill_name" 
+            value={currentSkill} 
+            onChange={handleChange} 
+            style={{ padding: '0.5rem', width: '100%' }}
+            placeholder="e.g., Python, React"
+          />
+        </div>
+        <button 
+          type="submit" 
+          style={{ padding: '0.5rem 1rem', cursor: 'pointer', backgroundColor: '#28a745', color: 'white', height: '2.5rem' }}
+        >
+          + Add
+        </button>
+      </form>
+
+      {/* Navigation Buttons */}
+      <div style={{ marginTop: '2rem' }}>
         <button onClick={prevStep} style={{ marginRight: '1rem', padding: '0.75rem' }}>
-          Back: Experience
+          Back: Projects
         </button>
         <button onClick={nextStep} style={{ padding: '0.75rem' }}>
           Next: Review & Submit
@@ -190,14 +243,14 @@ function ProjectsStep({ formData, setFormData, nextStep, prevStep }) {
 }
 
 
-// --- The Main Form Component ---
-// (This is the single, correct definition)
+// --- The Main Form Component (UPDATED) ---
 function ResumeForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     education: [],
     experience: [],
-    projects: []
+    projects: [],
+    skills: [] // <-- ADDED
   });
   
   const auth = useAuth(); 
@@ -218,7 +271,6 @@ function ResumeForm() {
     try {
       const response = await axios.post('http://127.0.0.1:8000/resume/', formData);
       console.log("Resume saved successfully:", response.data);
-      
       navigate('/'); // Redirect to dashboard
     
     } catch (err) {
@@ -231,6 +283,7 @@ function ResumeForm() {
     }
   };
 
+  // UPDATED: The renderStep function
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -242,14 +295,18 @@ function ResumeForm() {
       case 4:
         return <ProjectsStep formData={formData} setFormData={setFormData} nextStep={nextStep} prevStep={prevStep} />;
       case 5:
+        // NEW: Render the SkillsStep
+        return <SkillsStep formData={formData} setFormData={setFormData} nextStep={nextStep} prevStep={prevStep} />;
+      case 6:
+        // UPDATED: Review step is now case 6
         return (
           <div>
-            <h3>Step 5: Review & Submit</h3>
+            <h3>Step 6: Review & Submit</h3>
             <p>Review your information. When ready, click submit.</p>
             <pre>{JSON.stringify(formData, null, 2)}</pre>
             <div style={{ marginTop: '2rem' }}>
               <button onClick={prevStep} style={{ marginRight: '1rem', padding: '0.75rem' }}>
-                Back: Projects
+                Back: Skills
               </button>
               <button 
                 onClick={handleSubmit} 
@@ -261,7 +318,6 @@ function ResumeForm() {
           </div>
         );
       default:
-        // This is after submitting
         return <div>Saving...</div>;
     }
   };

@@ -80,6 +80,20 @@ class Project(ProjectBase):
     class Config:
         from_attributes = True
 
+# --- NEW: Skill Schemas ---
+class SkillBase(BaseModel):
+    name: str
+
+class SkillCreate(SkillBase):
+    pass
+
+class Skill(SkillBase):
+    id: int
+    resume_id: int
+
+    class Config:
+        from_attributes = True
+
 
 # --- Full Resume Schemas ---
 
@@ -96,6 +110,7 @@ class ResumeCreate(BaseModel):
     education: List[EducationCreate]
     experience: List[ExperienceCreate]
     projects: List[ProjectCreate]
+    skills: List[SkillCreate]
 
 # This is the main schema for *reading* a resume
 # This is what we will send back from the API
@@ -107,6 +122,19 @@ class Resume(ResumeCreate):
     education: List[Education] = []
     experience: List[Experience] = []
     projects: List[Project] = []
+    skills: List[Skill] = []
 
     class Config:
         from_attributes = True
+
+# --- NEW: AI Analysis Schemas ---
+
+class JobDescriptionIn(BaseModel):
+    """The job description text sent from the frontend"""
+    text: str
+
+class AnalysisResult(BaseModel):
+    """The structured JSON response from the AI"""
+    score: float
+    missing_keywords: List[str]
+    suggestions: str

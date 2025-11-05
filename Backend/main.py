@@ -8,6 +8,8 @@ from fastapi.security import OAuth2PasswordBearer
 import security # This should already be there
 import crud # This should already be there
 from typing import List
+import ai_analyzer # Our new file
+from typing import List # This might already be here
 
 # Import all our new files
 import models
@@ -174,4 +176,28 @@ async def read_resume(
         raise HTTPException(status_code=404, detail="Resume not found")
     return db_resume
 
-   
+@app.post("/resume/{resume_id}/analyze", response_model=schemas.AnalysisResult)
+async def analyze_resume(
+    resume_id: int,
+    job_description: schemas.JobDescriptionIn,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Protected endpoint to analyze a specific resume against a job description.
+    """
+
+    # 1. Get the resume from the DB
+    resume = crud.get_resume(db=db, resume_id=resume_id, user_id=current_user.id)
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    # 2. Call our new AI analyzer function
+    # This function does the heavy lifting
+    analysis_data = ai_analyzer.analyze_resume_with_ai(
+        resume=resume,
+        job_description=job_description.text
+    )
+
+    # 3. Return the JSON analysis
+    return analysis_data  

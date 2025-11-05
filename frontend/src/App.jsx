@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import CreateResumePage from './pages/CreateResumePage';
 import PrintResumePage from './pages/PrintResumePage';
+import AnalyzeResumePage from './pages/AnalyzeResumePage';
 
 // Component Imports
 import { useAuth } from './context/AuthContext';
@@ -115,12 +116,20 @@ function HomePage() {
                   <h3>{resume.full_name}</h3>
                   <p>{resume.email}</p>
                 </div>
-                {/* 2. NEW "VIEW/PRINT" BUTTON */}
-                <Link to="/print-preview" state={{ resume: resume }}>
-                  <button style={{ padding: '0.5rem 1rem' }}>
-                    View & Print
-                  </button>
-                </Link>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {/* View/Print */}
+                  <Link to="/print-preview" state={{ resume: resume }}>
+                    <button style={{ padding: '0.5rem 1rem' }}>
+                      View & Print
+                    </button>
+                  </Link>
+                  {/* Analyze */}
+                  <Link to="/analyze-resume" state={{ resume: resume }}>
+                    <button style={{ padding: '0.5rem 1rem', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px' }}>
+                      Analyze
+                    </button>
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
@@ -146,6 +155,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/create-resume" element={<CreateResumePage />} />
               <Route path="/print-preview" element={<PrintResumePage />} />
+              <Route path="/analyze-resume" element={<AnalyzeResumePage />} />
             </Route>
           </Routes>
         </div>
