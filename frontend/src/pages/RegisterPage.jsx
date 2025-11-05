@@ -42,41 +42,55 @@ function RegisterPage() {
   };
 
   return (
-    <div>
-      <h1>Register for GROBS.AI</h1>
-      
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', width: '300px' }}>
-        
-        <label htmlFor="email" style={{ marginTop: '1rem' }}>Email:</label>
-        <input
-          type="email"
-          id="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ padding: '0.5rem' }}
-        />
-        
-        <label htmlFor="password" style={{ marginTop: '1rem' }}>Password:</label>
-        <input
-          type="password"
-          id="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ padding: '0.5rem' }}
-        />
-        
-        <button 
-          type="submit" 
-          style={{ marginTop: '1.5rem', padding: '0.75rem', cursor: 'pointer' }}
-        >
-          Register
-        </button>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-8 bg-white rounded-2xl shadow-xl p-8">
+        <div className="text-center">
+          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-full flex items-center justify-center">
+            <span className="text-white font-bold text-xl">G</span>
+          </div>
+          <h1 className="mt-6 text-3xl font-bold text-gray-900">Create your account</h1>
+          <p className="mt-2 text-sm text-gray-600">Join GROBS.AI to craft standout resumes</p>
+        </div>
 
-        {/* 6. Show the error message if 'error' state is not empty */}
-        {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
-      </form>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button type="submit" className="w-full inline-flex justify-center rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 text-sm font-medium shadow-sm hover:from-blue-700 hover:to-indigo-700">
+            Create account
+          </button>
+
+          {error && <p className="text-sm text-rose-600">{error}</p>}
+
+          <p className="text-center text-sm text-gray-600">
+            Already have an account?{' '}
+            <button type="button" onClick={() => navigate('/login')} className="font-medium text-blue-600 hover:text-blue-500">Sign in</button>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

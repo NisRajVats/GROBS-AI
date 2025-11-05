@@ -1,29 +1,33 @@
 import React, { useState } from 'react';
-import { useLocation, Navigate } from 'react-router-dom';
-import axios from 'axios'; // 1. Import axios
+import { useLocation, Navigate, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 function AnalyzeResumePage() {
   const location = useLocation();
-  const { resume } = location.state || {};
-
-  // 2. Add state for the form
+  const navigate = useNavigate();
+  
+  // We now need to update the resume, so we use useState
+  // to make 'resume' a state variable.
+  const [resume, setResume] = useState(location.state?.resume);
+  
   const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState(null); // To store the AI's response
+  const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(''); // For success messages
 
-  // 3. This is the function for our button
+  const token = localStorage.getItem('grobs-ai-token');
+
   const handleAnalyzeClick = async () => {
     if (!jobDescription) {
       setError('Please paste a job description first.');
       return;
     }
     setError('');
+    setSuccess('');
     setLoading(true);
     setAnalysisResult(null);
 
-    // Get the token from localStorage
-    const token = localStorage.getItem('grobs-ai-token');
     if (!token) {
       setError('You are not logged in. Please log in again.');
       setLoading(false);
@@ -31,18 +35,11 @@ function AnalyzeResumePage() {
     }
 
     try {
-      // 4. Call the new backend endpoint
       const response = await axios.post(
         `http://127.0.0.1:8000/resume/${resume.id}/analyze`, 
-        { text: jobDescription }, // This is the request body
-        {
-          headers: {
-            'Authorization': `Bearer ${token}` // This is the security
-          }
-        }
+        { text: jobDescription },
+        { headers: { 'Authorization': `Bearer ${token}` } }
       );
-      
-      // 5. Save the AI's JSON response in our state
       setAnalysisResult(response.data);
       setLoading(false);
 
@@ -53,70 +50,134 @@ function AnalyzeResumePage() {
     }
   };
 
+  // --- THIS IS THE NEW "WOW" FUNCTION ---
+  const handleApplySkills = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    if (!analysisResult || !analysisResult.missing_keywords) {
+      setError("No skills to apply. Please run an analysis first.");
+      setLoading(false);
+      return;
+    }
+
+    // 1. Get a set of the user's current skill names
+    const currentSkillNames = new Set(resume.skills.map(skill => skill.name.toLowerCase()));
+    
+    // 2. Find which new skills are *actually* new
+    const newSkillsToAdd = analysisResult.missing_keywords
+      .filter(keyword => !currentSkillNames.has(keyword.toLowerCase()))
+      .map(name => ({ name })); // Convert from string to {name: "string"} object
+
+    if (newSkillsToAdd.length === 0) {
+      setSuccess("Your skills are already up to date!");
+      setLoading(false);
+      return;
+    }
+
+    // 3. Create the new, updated resume object
+    const updatedResume = {
+      ...resume,
+      skills: [...resume.skills, ...newSkillsToAdd]
+    };
+
+    // 4. Call the 'update' (PUT) endpoint we already built
+    try {
+      await axios.put(
+        `http://127.0.0.1:8000/resume/${resume.id}`,
+        updatedResume, // Send the full, updated resume
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      // 5. Update our local state to match
+      setResume(updatedResume);
+      setSuccess(`${newSkillsToAdd.length} new skill(s) added to your resume!`);
+      setLoading(false);
+
+    } catch (err) {
+      console.error("Error updating resume:", err);
+      setError("Could not save new skills. Please try again.");
+      setLoading(false);
+    }
+  };
+
   if (!resume) {
     return <Navigate to="/" replace />;
   }
 
   return (
-    <div>
-      <h1>Analyze Resume: {resume.full_name}</h1>
-      <p>This is where the AI analysis will go.</p>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Analyze Resume: {resume.full_name}</h1>
+        <p className="text-sm text-gray-600 mt-1">Paste a job description to get AI insights and suggested skills.</p>
+      </div>
 
-      <div style={{ marginTop: '2rem', display: 'flex', gap: '2rem' }}>
-        {/* Left Side: Job Description */}
-        <div style={{ flex: 1 }}>
-          <h3>Paste Job Description Below:</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left: Job Description */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-gray-900">Paste Job Description</h3>
           <textarea
-            style={{ width: '100%', height: '300px', padding: '0.5rem' }}
+            className="mt-3 h-72 w-full resize-none rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Paste the full job description here..."
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
           />
-          <button 
-            onClick={handleAnalyzeClick}
-            disabled={loading} // Disable button while loading
-            style={{ 
-              padding: '0.75rem 1.5rem', 
-              fontSize: '1rem', 
-              cursor: 'pointer',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              marginTop: '1rem'
-            }}
-          >
-            {loading ? 'Analyzing...' : 'Analyze with GROBS.AI'}
-          </button>
-          {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              onClick={handleAnalyzeClick}
+              disabled={loading}
+              className="inline-flex items-center rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 text-sm font-medium shadow-sm hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50"
+            >
+              {loading ? 'Analyzing...' : 'Analyze with GROBS.AI'}
+            </button>
+            {error && <span className="text-sm text-rose-600">{error}</span>}
+            {success && <span className="text-sm text-emerald-600">{success}</span>}
+          </div>
         </div>
 
-        {/* Right Side: AI Results */}
-        <div style={{ flex: 1, border: '1px solid #ccc', borderRadius: '8px', padding: '1rem', backgroundColor: '#f9f9f9' }}>
-          <h3>AI Analysis Results</h3>
-          
-          {/* 6. Display the results from our state */}
-          {loading && <p>Loading...</p>}
-          
+        {/* Right: Results */}
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h3 className="text-base font-semibold text-gray-900">AI Analysis Results</h3>
+
+          {loading && <p className="mt-2 text-gray-600">Loading...</p>}
+
           {analysisResult && (
-            <div>
-              <h4 style={{ margin: '0 0 0.5rem 0' }}>Match Score:</h4>
-              <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#007bff' }}>
-                {analysisResult.score.toFixed(0)} / 100
-              </p>
+            <div className="mt-3 space-y-4">
+              <div>
+                <h4 className="text-sm font-medium text-gray-700">Match Score</h4>
+                <p className="mt-1 text-3xl font-extrabold tracking-tight text-blue-700">
+                  {analysisResult.score.toFixed(0)} / 100
+                </p>
+              </div>
 
-              <h4 style={{ marginTop: '1.5rem' }}>Missing Keywords:</h4>
-              <ul style={{ paddingLeft: '20px' }}>
-                {analysisResult.missing_keywords.map((keyword, index) => (
-                  <li key={index}>{keyword}</li>
-                ))}
-              </ul>
+              <div>
+                <h4 className="text-sm font-medium text-gray-700">Missing Keywords</h4>
+                <ul className="mt-1 list-disc list-inside text-sm text-gray-700">
+                  {analysisResult.missing_keywords.map((keyword, index) => (
+                    <li key={index}>{keyword}</li>
+                  ))}
+                </ul>
+                <button
+                  onClick={handleApplySkills}
+                  disabled={loading}
+                  className="mt-3 inline-flex items-center rounded-lg bg-emerald-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  + Add Missing Skills to My Resume
+                </button>
+              </div>
 
-              <h4 style={{ marginTop: '1.5rem' }}>Suggestions:</h4>
-              {/* We use 'pre-wrap' to respect the newlines (bullet points) from the AI */}
-              <p style={{ whiteSpace: 'pre-wrap' }}>
-                {analysisResult.suggestions}
-              </p>
+              <div>
+                <h4 className="text-sm font-medium text-gray-700">Suggestions</h4>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{analysisResult.suggestions}</p>
+              </div>
+
+              <button
+                onClick={() => navigate(`/edit-resume/${resume.id}`)}
+                className="inline-flex items-center rounded-lg bg-amber-400 text-gray-900 px-3 py-1.5 text-sm font-medium hover:bg-amber-500"
+              >
+                Edit Resume Manually
+              </button>
             </div>
           )}
         </div>
