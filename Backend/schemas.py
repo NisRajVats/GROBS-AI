@@ -111,6 +111,7 @@ class ResumeCreate(BaseModel):
     experience: List[ExperienceCreate]
     projects: List[ProjectCreate]
     skills: List[SkillCreate]
+    template_name: Optional[str] = "classic"
 
 # This is the main schema for *reading* a resume
 # This is what we will send back from the API

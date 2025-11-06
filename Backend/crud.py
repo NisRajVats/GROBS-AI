@@ -35,6 +35,7 @@ def create_resume(db: Session, resume_data: schemas.ResumeCreate, user_id: int):
         email=resume_data.email,
         phone=resume_data.phone,
         linkedin_url=resume_data.linkedin_url,
+        template_name=resume_data.template_name,
         owner_id=user_id  # Link it to the logged-in user
     )
     
@@ -95,3 +96,68 @@ def get_resume(db: Session, resume_id: int, user_id: int):
         models.Resume.id == resume_id,
         models.Resume.owner_id == user_id
     ).first()
+
+def delete_resume(db: Session, resume_id: int, user_id: int):
+    # Find the resume first
+    db_resume = get_resume(db=db, resume_id=resume_id, user_id=user_id)
+    
+    if db_resume is None:
+        return None
+    
+    # Now delete it
+    db.delete(db_resume)
+    db.commit()
+    
+    return db_resume # Return the object we deleted
+
+
+def update_resume(db: Session, resume_id: int, user_id: int, resume_data: schemas.ResumeCreate):
+    """
+    Updates an existing resume.
+    """
+    
+    # 1. Get the existing resume
+    db_resume = get_resume(db=db, resume_id=resume_id, user_id=user_id)
+    
+    if not db_resume:
+        return None # Resume not found or user doesn't own it
+
+    # 2. Delete all old children data
+    # (SQLAlchemy's "cascade" will handle this from the resume object)
+    db_resume.education = []
+    db_resume.experience = []
+    db_resume.projects = []
+    db_resume.skills = []
+    
+    # We commit here to clear the old relationships
+    db.commit()
+
+    # 3. Update the main resume (Personal Info)
+    db_resume.full_name = resume_data.full_name
+    db_resume.email = resume_data.email
+    db_resume.phone = resume_data.phone
+    db_resume.linkedin_url = resume_data.linkedin_url
+    db_resume.template_name = resume_data.template_name
+    
+    # 4. Add all the new children, just like in create_resume
+    for edu_data in resume_data.education:
+        db_edu = models.Education(**edu_data.dict(), resume_id=db_resume.id)
+        db.add(db_edu)
+        
+    for exp_data in resume_data.experience:
+        db_exp = models.Experience(**exp_data.dict(), resume_id=db_resume.id)
+        db.add(db_exp)
+
+    for proj_data in resume_data.projects:
+        db_proj = models.Project(**proj_data.dict(), resume_id=db_resume.id)
+        db.add(db_proj)
+        
+    for skill_data in resume_data.skills:
+        db_skill = models.Skill(**skill_data.dict(), resume_id=db_resume.id)
+        db.add(db_skill)
+            
+    # 5. Commit all the changes
+    db.commit()
+    db.refresh(db_resume)
+    
+    return db_resume

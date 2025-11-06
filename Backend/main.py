@@ -10,6 +10,7 @@ import crud # This should already be there
 from typing import List
 import ai_analyzer # Our new file
 from typing import List # This might already be here
+from fastapi import FastAPI, Depends, HTTPException, Response, status
 
 # Import all our new files
 import models
@@ -201,3 +202,45 @@ async def analyze_resume(
 
     # 3. Return the JSON analysis
     return analysis_data  
+
+@app.delete("/resume/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_resume(
+    resume_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Protected endpoint to delete a resume.
+    """
+
+    db_resume = crud.delete_resume(db=db, resume_id=resume_id, user_id=current_user.id)
+
+    if db_resume is None:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    # A 204 response means "Success, but I have nothing to send back"
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.put("/resume/{resume_id}", response_model=schemas.Resume)
+async def update_resume(
+    resume_id: int,
+    resume_data: schemas.ResumeCreate, # We can re-use the Create schema!
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Protected endpoint to update an existing resume.
+    """
+    
+    db_resume = crud.update_resume(
+        db=db, 
+        resume_id=resume_id, 
+        user_id=current_user.id, 
+        resume_data=resume_data
+    )
+    
+    if db_resume is None:
+        raise HTTPException(status_code=404, detail="Resume not found")
+        
+    return db_resume

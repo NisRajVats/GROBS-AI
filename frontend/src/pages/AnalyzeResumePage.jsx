@@ -1,20 +1,90 @@
 import React, { useState } from 'react';
-import { useLocation, Navigate, useNavigate } from 'react-router-dom';
+import { useLocation, Navigate, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
+// --- NEW: A Read-Only Component to Display Your Resume ---
+function CompactResumeView({ resume }) {
+  const boxStyle = {
+    border: '1px solid #ccc',
+    borderRadius: '8px',
+    padding: '1rem',
+    backgroundColor: '#fff',
+    height: '100%', // Make it fill the column
+    overflowY: 'auto' // Add scroll if content is long
+  };
+  const sectionTitle = {
+    fontSize: '1.1rem',
+    fontWeight: 'bold',
+    color: '#007bff',
+    borderBottom: '1px solid #eee',
+    paddingBottom: '0.25rem',
+    marginTop: '0'
+  };
+  const itemStyle = {
+    marginBottom: '0.5rem',
+    paddingBottom: '0.5rem',
+    borderBottom: '1px dotted #ddd'
+  };
+
+  return (
+    <div style={boxStyle}>
+      <h3 style={sectionTitle}>Your Resume Snapshot</h3>
+      
+      {/* Education */}
+      <h4 style={{...sectionTitle, fontSize: '1rem', color: '#333', marginTop: '1rem'}}>Education</h4>
+      {resume.education.map((edu) => (
+        <div key={edu.id || edu.school} style={itemStyle}>
+          <strong>{edu.degree}</strong> at {edu.school}
+        </div>
+      ))}
+
+      {/* Experience */}
+      <h4 style={{...sectionTitle, fontSize: '1rem', color: '#333', marginTop: '1rem'}}>Experience</h4>
+      {resume.experience.map((exp) => (
+        <div key={exp.id || exp.company} style={itemStyle}>
+          <strong>{exp.role}</strong> at {exp.company}
+          <p style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap', margin: '0.25rem 0 0 0' }}>
+            {exp.responsibilities}
+          </p>
+        </div>
+      ))}
+
+      {/* Projects */}
+      <h4 style={{...sectionTitle, fontSize: '1rem', color: '#333', marginTop: '1rem'}}>Projects</h4>
+      {resume.projects.map((proj) => (
+        <div key={proj.id || proj.project_name} style={itemStyle}>
+          <strong>{proj.project_name}</strong>
+          <p style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap', margin: '0.25rem 0 0 0' }}>
+            {proj.description}
+          </p>
+        </div>
+      ))}
+
+      {/* Skills */}
+      <h4 style={{...sectionTitle, fontSize: '1rem', color: '#333', marginTop: '1rem'}}>Skills</h4>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+        {resume.skills.map((skill) => (
+          <span key={skill.id || skill.name} style={{ padding: '0.25rem 0.75rem', backgroundColor: '#6c757d', color: 'white', borderRadius: '20px', fontSize: '0.9rem' }}>
+            {skill.name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- Main Page Component ---
 function AnalyzeResumePage() {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // We now need to update the resume, so we use useState
-  // to make 'resume' a state variable.
   const [resume, setResume] = useState(location.state?.resume);
   
   const [jobDescription, setJobDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(''); // For success messages
+  const [success, setSuccess] = useState('');
 
   const token = localStorage.getItem('grobs-ai-token');
 
@@ -50,7 +120,6 @@ function AnalyzeResumePage() {
     }
   };
 
-  // --- THIS IS THE NEW "WOW" FUNCTION ---
   const handleApplySkills = async () => {
     setLoading(true);
     setError('');
@@ -62,13 +131,10 @@ function AnalyzeResumePage() {
       return;
     }
 
-    // 1. Get a set of the user's current skill names
     const currentSkillNames = new Set(resume.skills.map(skill => skill.name.toLowerCase()));
-    
-    // 2. Find which new skills are *actually* new
     const newSkillsToAdd = analysisResult.missing_keywords
       .filter(keyword => !currentSkillNames.has(keyword.toLowerCase()))
-      .map(name => ({ name })); // Convert from string to {name: "string"} object
+      .map(name => ({ name }));
 
     if (newSkillsToAdd.length === 0) {
       setSuccess("Your skills are already up to date!");
@@ -76,21 +142,18 @@ function AnalyzeResumePage() {
       return;
     }
 
-    // 3. Create the new, updated resume object
     const updatedResume = {
       ...resume,
       skills: [...resume.skills, ...newSkillsToAdd]
     };
 
-    // 4. Call the 'update' (PUT) endpoint we already built
     try {
       await axios.put(
         `http://127.0.0.1:8000/resume/${resume.id}`,
-        updatedResume, // Send the full, updated resume
+        updatedResume,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       
-      // 5. Update our local state to match
       setResume(updatedResume);
       setSuccess(`${newSkillsToAdd.length} new skill(s) added to your resume!`);
       setLoading(false);
@@ -107,77 +170,130 @@ function AnalyzeResumePage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Analyze Resume: {resume.full_name}</h1>
-        <p className="text-sm text-gray-600 mt-1">Paste a job description to get AI insights and suggested skills.</p>
-      </div>
+    <div>
+      <h1 style={{ borderBottom: '2px solid #eee', paddingBottom: '1rem' }}>
+        AI Resume Analyzer
+      </h1>
+      
+      {/* --- NEW 3-COLUMN LAYOUT --- */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: '1fr 1fr 1fr', // Three equal columns
+        gap: '1.5rem',
+        marginTop: '2rem',
+        height: '70vh' // Set a fixed height for the columns
+      }}>
+        
+        {/* --- Column 1: Your Resume --- */}
+        <CompactResumeView resume={resume} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: Job Description */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="text-base font-semibold text-gray-900">Paste Job Description</h3>
+        {/* --- Column 2: Job Description --- */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <h3>Job Description</h3>
           <textarea
-            className="mt-3 h-72 w-full resize-none rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            style={{ 
+              width: '100%', 
+              flexGrow: 1, // Make textarea fill the space
+              padding: '0.5rem',
+              border: '1px solid #ccc',
+              borderRadius: '8px'
+            }}
             placeholder="Paste the full job description here..."
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
           />
-          <div className="mt-3 flex items-center gap-3">
-            <button
-              onClick={handleAnalyzeClick}
-              disabled={loading}
-              className="inline-flex items-center rounded-lg bg-linear-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 text-sm font-medium shadow-sm hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50"
-            >
-              {loading ? 'Analyzing...' : 'Analyze with GROBS.AI'}
-            </button>
-            {error && <span className="text-sm text-rose-600">{error}</span>}
-            {success && <span className="text-sm text-emerald-600">{success}</span>}
-          </div>
+          <button 
+            onClick={handleAnalyzeClick}
+            disabled={loading}
+            style={{ 
+              padding: '0.75rem 1.5rem', 
+              fontSize: '1rem', 
+              cursor: 'pointer',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              marginTop: '1rem'
+            }}
+          >
+            {loading ? 'Analyzing...' : 'Analyze with GROBS.AI'}
+          </button>
+          {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
+          {success && <p style={{ color: 'green', marginTop: '1rem' }}>{success}</p>}
         </div>
 
-        {/* Right: Results */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="text-base font-semibold text-gray-900">AI Analysis Results</h3>
-
-          {loading && <p className="mt-2 text-gray-600">Loading...</p>}
-
+        {/* --- Column 3: AI Results --- */}
+        <div style={{ 
+          border: '1px solid #ccc', 
+          borderRadius: '8px', 
+          padding: '1rem', 
+          backgroundColor: '#f9f9f9',
+          height: '100%',
+          overflowY: 'auto'
+        }}>
+          <h3>AI Analysis Results</h3>
+          
+          {!analysisResult && !loading && (
+            <p>Your results will appear here after analysis.</p>
+          )}
+          
+          {loading && <p>Loading...</p>}
+          
           {analysisResult && (
-            <div className="mt-3 space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-gray-700">Match Score</h4>
-                <p className="mt-1 text-3xl font-extrabold tracking-tight text-blue-700">
-                  {analysisResult.score.toFixed(0)} / 100
-                </p>
-              </div>
+            <div>
+              <h4 style={{ margin: '0 0 0.5rem 0' }}>Match Score:</h4>
+              <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0, color: '#007bff' }}>
+                {analysisResult.score.toFixed(0)} / 100
+              </p>
 
-              <div>
-                <h4 className="text-sm font-medium text-gray-700">Missing Keywords</h4>
-                <ul className="mt-1 list-disc list-inside text-sm text-gray-700">
-                  {analysisResult.missing_keywords.map((keyword, index) => (
-                    <li key={index}>{keyword}</li>
-                  ))}
-                </ul>
-                <button
-                  onClick={handleApplySkills}
-                  disabled={loading}
-                  className="mt-3 inline-flex items-center rounded-lg bg-emerald-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+              <h4 style={{ marginTop: '1.5rem' }}>Missing Keywords:</h4>
+              <ul style={{ paddingLeft: '20px' }}>
+                {analysisResult.missing_keywords.map((keyword, index) => (
+                  <li key={index}>{keyword}</li>
+                ))}
+              </ul>
+              
+              <button 
+                onClick={handleApplySkills} 
+                disabled={loading}
+                style={{ 
+                  padding: '0.5rem 1rem', fontSize: '0.9rem', cursor: 'pointer',
+                  backgroundColor: '#28a745', color: 'white', border: 'none',
+                  borderRadius: '5px', marginTop: '0.5rem'
+                }}
+              >
+                + Add Missing Skills to My Resume
+              </button>
+
+              <h4 style={{ marginTop: '1.5rem' }}>Suggestions:</h4>
+              <p style={{ whiteSpace: 'pre-wrap' }}>
+                {analysisResult.suggestions}
+              </p>
+              
+              <div style={{ marginTop: '2rem', borderTop: '1px solid #eee', paddingTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+                <Link to="/print-preview" state={{ resume: resume }}>
+                  <button 
+                    style={{ 
+                      padding: '0.5rem 1rem', fontSize: '0.9rem', cursor: 'pointer',
+                      backgroundColor: '#17a2b8', color: 'white', border: 'none',
+                      borderRadius: '5px'
+                    }}
+                  >
+                    Download Updated Resume
+                  </button>
+                </Link>
+
+                <button 
+                  onClick={() => navigate(`/edit-resume/${resume.id}`)}
+                  style={{ 
+                    padding: '0.5rem 1rem', fontSize: '0.9rem', cursor: 'pointer',
+                    backgroundColor: '#ffc107', color: 'black', border: 'none',
+                    borderRadius: '5px'
+                  }}
                 >
-                  + Add Missing Skills to My Resume
+                  Edit Resume Manually
                 </button>
               </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-gray-700">Suggestions</h4>
-                <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{analysisResult.suggestions}</p>
-              </div>
-
-              <button
-                onClick={() => navigate(`/edit-resume/${resume.id}`)}
-                className="inline-flex items-center rounded-lg bg-amber-400 text-gray-900 px-3 py-1.5 text-sm font-medium hover:bg-amber-500"
-              >
-                Edit Resume Manually
-              </button>
             </div>
           )}
         </div>

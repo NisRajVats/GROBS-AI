@@ -25,11 +25,14 @@ class Resume(Base):
     email = Column(String)
     phone = Column(String, nullable=True)
     linkedin_url = Column(String, nullable=True)
+    template_name = Column(String, default="classic")
     
     # --- Links ---
     # Link to the user who owns this resume
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="resumes")
+    
+    
     
     # Links to the other sections
     education = relationship("Education", back_populates="resume", cascade="all, delete-orphan")
