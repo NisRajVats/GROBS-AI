@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+body {
+  background: linear-gradient(to bottom right, rgb(248 250 252), rgb(219 234 254), rgb(248 250 252));
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: rgb(15 23 42);
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.card-hover {
+  transition: all 0.3s;
+}
+
+.card-hover:hover {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  transform: translateY(-4px);
+}
+
+.gradient-text {
+  background: linear-gradient(to right, rgb(14 165 233), rgb(239 68 68));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
